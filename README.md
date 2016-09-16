@@ -192,7 +192,7 @@ Returns a generator iterating through the list "backwards" (i.e. .before.before.
 ```hs
 :: NEList [a] -> *generator*
 ```
-Iterating through a NEList generates values moving "forwards" (tailwise).  It is not implemented for circular lists, as an operation like [...NECL.of(9)] is _guaranteed_ to crash your browser.  Use the `.toGenerator()` methods instead.
+Iterating through a NEList generates values moving "forwards" (tailwise).  It is not implemented for circular lists, as an operation like [...NECL.of(9)] is _guaranteed_ to crash your browser.  Use the `.toGenerator()` methods for circular lists instead, ideally either with the horizon parameter (which would allow safe spreading `[...NECL.of(9).toGenerator(1000)]` or in a safe, non-stack-overflowing manner.
 
 
 ### Reflection
