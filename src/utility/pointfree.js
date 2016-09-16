@@ -119,7 +119,8 @@ const traverse = curry((point, f, ms)=>{
 
 const any = (acc, x) => x || acc;//empty is false
 const all = (acc, x) => x && acc;//empty is true
-
+const sum = (acc, x) => x + acc;//simply sum helper
+const reduceBySum = reduce(sum,0);//simple sum helper
 
 module.exports = {
   I,
@@ -155,5 +156,7 @@ module.exports = {
   rmap,
   dimap,
   any,
-  all
+  all,
+  sum,
+  reduceBySum
 };

@@ -1368,7 +1368,8 @@ const traverse = curry((point, f, ms)=>{
 
 const any = (acc, x) => x || acc;//empty is false
 const all = (acc, x) => x && acc;//empty is true
-
+const sum = (acc, x) => x + acc;//simply sum helper
+const reduceBySum = reduce(sum,0);//simple sum helper
 
 module.exports = {
   I,
@@ -1404,7 +1405,9 @@ module.exports = {
   rmap,
   dimap,
   any,
-  all
+  all,
+  sum,
+  reduceBySum
 };
 },{}],13:[function(require,module,exports){
 //returns the nodes, one trip around from ref
@@ -1440,11 +1443,11 @@ const walkTailValues = function*(ref){
 //returns the nodes, one trip around backwards from ref
 const walkPrev = function*(ref){
   const start = ref;
-  let cur = ref.before;
+  let cur = ref.prev;
   yield ref;
   while(cur!==start){
     yield cur;
-    cur = cur.before;
+    cur = cur.prev;
   }
 }
 
@@ -1462,12 +1465,12 @@ const walkTailForever = function*(ref, horizon){
 
 //returns the actual values, not the nodes, endlessly
 const walkPrevForever = function*(ref, horizon){
-  let cur = ref.before;
+  let cur = ref.prev;
   let i = 0;
   yield ref.value;
   while(true && (!horizon ||++i !==horizon)){
     yield cur.value;
-    cur = cur.before;
+    cur = cur.prev;
   }
 }
 
