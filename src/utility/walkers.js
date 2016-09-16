@@ -9,6 +9,15 @@ const walkTail = function*(ref){
   }
 }
 
+const iterateTail = function*(){
+  let ref = this;
+  while(ref.tail){
+    yield ref.value;
+    ref = ref.tail;
+  }
+  yield ref.value;
+}
+
 const walkTailValues = function*(ref){
   const start = ref;
   let cur = ref.tail;
@@ -72,5 +81,6 @@ module.exports ={
   walkPrev,
   walkTailForever,
   walkPrevForever,
-  walkTailValuesForever
+  walkTailValuesForever,
+  iterateTail
 };

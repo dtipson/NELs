@@ -164,13 +164,14 @@ NECDLL[1,2,3].toString(): `'<-1,2,3->'`
 ```
 Returns the list as a normal array.  With circular lists, this obviously means losing the "circularity" context: the resulting Array will simply start with the "current" node reference and end with the node previous to it.
 
+
 #### `.toGenerator( Int )`
 ```hs
 :: NEList[a] -> *generator*
 ```
-Returns a generator iterating through the list "forwards" (i.e. .tail.tail.tail ...etc), infinitely repeating (even for regular, finite `NEL`)
+Returns a generator that will iterate through the list "forwards" (i.e. .tail.tail.tail ...etc), but in this case _always_ infinitely repeating (even for regular, finite `NEL`)
 
-*Warning*: these are infinite lists we're talking about, so running something like [...generator] will crash your browser.  Either iterate over them in a safe, controlled fashion, or pass the optional `Int` "horizon" paramter into the function, which will cap the total number of iterations it can return.
+*Warning*: The same warning about infinite lists applies here, but you can optionally pass in an `Int` "horizon" paramter into the function, which will cap the total number of iterations it can return.
 
 ```
 var g = NECDLL.fromArray([1,2,3,4,5,6]).toGenerator();
@@ -184,6 +185,15 @@ setInterval(_=>console.log(g.next().value), 1000);//logs an item every second: .
 :: NEList [a] -> *generator*
 ```
 Returns a generator iterating through the list "backwards" (i.e. .before.before.before ...etc). Also infinite.  Also a *Warning* on usage. Also supports the optional `Int` horizon.
+
+ <p align="center">(NEL only)</p>
+ 
+#### `[...NEList.of(9)], i.e. implicit [Symbol.iterator] behavior`
+```hs
+:: NEList [a] -> *generator*
+```
+Iterating through a NEList generates values moving "forwards" (tailwise).  It is not implemented for circular lists, as an operation like [...NECL.of(9)] is _guaranteed_ to crash your browser.  Use the `.toGenerator()` methods instead.
+
 
 ### Reflection
 

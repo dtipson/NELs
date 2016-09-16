@@ -418,7 +418,7 @@ module.exports = {
 }
 
 },{"../src/utility/pointfree.js":12,"../src/utility/walkers.js":13}],4:[function(require,module,exports){
-const { walkTailValuesForever } = require('../src/utility/walkers.js');
+const { iterateTail, walkTailValuesForever } = require('../src/utility/walkers.js');
 
 //create an (empty) prototype
 function NEL(){
@@ -430,8 +430,12 @@ function One(value) {
   if (!(this instanceof One)) {
     return new One(value);
   }
-  Object.assign(this, {value, length:1});
-}
+  Object.assign(this, {
+    value,
+    length: 1, 
+    [Symbol.iterator]: iterateTail
+  });
+};
 One.prototype = Object.create(NEL.prototype);
 
 //create a type that can hold a value AND point to another value
@@ -439,7 +443,12 @@ function Many(value, tail) {
   if (!(this instanceof Many)) {
     return new Many(value, tail);
   }
-  Object.assign(this, {value, tail, length:tail.length+1});
+  Object.assign(this, {
+    value,
+    tail,
+    length:tail.length+1,
+    [Symbol.iterator]: iterateTail
+  });
 }
 Many.prototype = Object.create(NEL.prototype);
 
@@ -1409,6 +1418,15 @@ const walkTail = function*(ref){
   }
 }
 
+const iterateTail = function*(){
+  let ref = this;
+  while(ref.tail){
+    yield ref.value;
+    ref = ref.tail;
+  }
+  yield ref.value;
+}
+
 const walkTailValues = function*(ref){
   const start = ref;
   let cur = ref.tail;
@@ -1472,6 +1490,7 @@ module.exports ={
   walkPrev,
   walkTailForever,
   walkPrevForever,
-  walkTailValuesForever
+  walkTailValuesForever,
+  iterateTail
 };
 },{}]},{},[1]);
