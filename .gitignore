@@ -1,0 +1,14 @@
+.DS_Store*
+node_modules
+.sass-cache
+config.local.php
+database.local.php
+cms/expressionengine/cache/*
+gulp-logs
+composer.lock
+composer.phar
+dist
+local-docs
+nightmare-test
+screenshots
+.nyc_output

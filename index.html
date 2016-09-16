@@ -1,0 +1,24 @@
+<!DOCTYPE><html><head>
+
+</head><body>
+
+<script src="bundle.js"></script>
+<script>
+
+const nel = NEL.of(1).concat(2).concat(3).concat(4).concat(NEL.fromArray([5,6,7,8]));
+
+const l1 = Leaf(1, "new jersey");
+const l2 = Leaf(2, "ohio");
+const l3 = Leaf(3, "hawaii");
+const l4 = Leaf(4, "utah");
+const l5 = Leaf(5, "the free state of vermont");
+
+const b3 = Branch(l4, l5, "tiny ")
+const b2 = Branch(l2, l3, "minor ");
+const b1 = Branch(l1, b3, "maj ");
+
+
+const tree = Branch(b1, b2, "us ");
+
+</script>
+</body></html>
