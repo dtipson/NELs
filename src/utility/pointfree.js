@@ -13,15 +13,24 @@ const S = b => f => x => b(x,f(x));
 //String -> Object -> Arguments -> ?
 const invoke = methodname => obj => (...args) => obj[methodname](...args);
 
-const ap = curry((A, A2) => A.ap(A2));
-const map = curry((f, F) => F.map(x=>f(x)));//guard against Array.map
+
+const map = curry((f, F) => typeof F.map==="function" ? F.map(x=>f(x)) : F.map(f) );//guard against Array.map, fallback to promises
+
+//Array/Promise polyfilling
+const chain = curry(
+  (f, M) => typeof M.chain==="function" ? M.chain(f) : (typeof M.then==="function" ? M.then(f) : [].concat(...M.map(f)))//array chain fallback
+);
+
+
+//Array polyfilling
+const ap = curry(
+  (Ap, Ap2) => typeof Ap.ap==="function" ? Ap.ap(Ap2) : Ap.reduce( (acc, f) => acc.concat( Ap2.map(f) ), [])
+);
+
 const reduce = curry((f, acc, F) => F.reduce(f,acc));
-const chain = curry((f, M) => typeof M.chain==="function" ? M.chain(f) : [].concat(...M.map(f)));//array chain fallback
 
-
-
-const liftA2 = curry((f, A1, A2) => A1.map(f).ap(A2));//
-const liftA3 = curry((f, A1, A2, A3) => A1.map(f).ap(A2).ap(A3));
+const liftA2 = curry((f, A1, A2) => ap(A1.map(f), A2));//
+const liftA3 = curry((f, A1, A2, A3) => ap(ap(A1.map(f), A2), A3)    );
 //look ma, no map!
 //const liftA22 = curry((f, A1, A2) => A1.constructor.of(f).ap(A1).ap(A2));
 

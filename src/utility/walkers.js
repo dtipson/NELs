@@ -9,6 +9,16 @@ const walkTail = function*(ref){
   }
 }
 
+const walkTailValues = function*(ref){
+  const start = ref;
+  let cur = ref.tail;
+  yield ref.value;
+  while(cur!==start){
+    yield cur.value;
+    cur = cur.tail;
+  }
+}
+
 //returns the nodes, one trip around backwards from ref
 const walkPrev = function*(ref){
   const start = ref;
@@ -43,9 +53,24 @@ const walkPrevForever = function*(ref, horizon){
   }
 }
 
+//returns the nodes, but repeats at start for non-circular nodes
+const walkTailValuesForever = function*(ref, horizon){
+  const start = ref;
+  let i = 0;
+  let cur = ref.tail||ref;
+  yield ref.value;
+  while(!horizon || ++i !== horizon){
+    yield cur.value;
+    cur = (cur.tail||start);
+  }
+}
+
+
 module.exports ={
   walkTail,
+  walkTailValues,
   walkPrev,
   walkTailForever,
-  walkPrevForever
+  walkPrevForever,
+  walkTailValuesForever
 };

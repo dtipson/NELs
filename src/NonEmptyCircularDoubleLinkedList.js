@@ -1,4 +1,4 @@
-//single-linked circular lists
+//doubly-linked circular lists
 const { walkTail, walkPrev, walkTailForever, walkPrevForever} = require('../src/utility/walkers.js');
 const { chain } = require('../src/utility/pointfree.js');
 
@@ -27,9 +27,10 @@ NECDLL.fromArray = ([head,...arr]=[]) => {
   return arr.reduceRight((acc, x)=> acc.cons(x), RingNodeD(head)).prev;
 };
 
+RingNodeD.prototype.cons = function(x){
+  const newhead = new RingNodeD(x), 
+        oldhead = new RingNodeD(this.value);
 
-//iterates through the old list to build a new one with all the right links and values
-RingNodeD.prototype._link = function(newhead, oldhead){
   newhead.tail = oldhead;
   oldhead.prev = newhead;
   //simpler <-1-> to <-1,2-> case
@@ -37,6 +38,7 @@ RingNodeD.prototype._link = function(newhead, oldhead){
     newhead.prev = oldhead;
     oldhead.tail = newhead;
   }
+  //<-1,2-> to <-3,1,2-> case and beyond
   else{
     let ref = this.tail;
     let prev = oldhead;
@@ -48,10 +50,10 @@ RingNodeD.prototype._link = function(newhead, oldhead){
     newhead.prev = prev;
   }
   return newhead;
-};
+}
 
-RingNodeD.prototype.cons = function(x){
-  return this._link(new RingNodeD(x), new RingNodeD(this.value));
+RingNodeD.prototype.concat = function(x){
+  return this.cons(x).tail;
 }
 
 
@@ -86,15 +88,37 @@ NECDLL.prototype.ap = function(Ap){
 }
 
 NECDLL.prototype.flatten = function(){
-  return this.map(x=>x.value);
+  return this.chain(x=>x instanceof NECDLL ? x : NECDLL.of(x));
 }
+
+NECDLL.prototype.reduce = function(f, acc){
+  const walker = walkTail(this);
+  return this.toArray().reduce(f, acc);
+}
+
+//without Array.prototype modifications
+NECDLL.prototype.sequence = function(point){
+  return this.tail.reduce(
+    function(acc, x) {
+      return ap(
+        acc.map(innernel => othertype => innernel.concat(othertype) ),//puts this function in the type
+        x.map(NECDLL.of)//then applies the inner othertype value to it
+      );
+    },
+    chain(x=>point(NECDLL.of(x)))(this.value)
+  );
+};
+
+NECDLL.prototype.traverse = function(f, point){
+  return this.map(f).sequence(point||f);
+};
+
 
 
 NECDLL.prototype.size = function(el){
   const walker = walkTail(this);
   return [...walker].length;
 }
-
 
 NECDLL.prototype.at = function(index){
   if(index===0){
@@ -115,11 +139,11 @@ NECDLL.prototype.at = function(index){
 };
 
 NECDLL.prototype.last = function(num){
-  return !num ? this.before : this.at(-num);
+  return num===undefined ? this.before : this.at(-num);
 }
 
 NECDLL.prototype.next = function(num){
-  return !num ? this.tail : this.at(num);
+  return num===undefined ? this.tail : this.at(num);
 }
 
 
@@ -148,7 +172,10 @@ NECDLL.prototype.toReverseGenerator = function(horizon){
 
 //nearest values in an array, defaults to 2 nearest, when implemented, num can be a slice up to the entire array
 NECDLL.prototype.extendNear = function(f, num){
-  const walker = NECDLL.walkTail(this);
+  if(num){
+    throw new Error("num not implemented yet");
+  }
+  const walker = walkTail(this);
   return NECDLL.fromArray([...walker].map(x=>f([x.before.value,x.value,x.tail.value])));
 }
 
@@ -156,9 +183,9 @@ NECDLL.prototype.extendNear = function(f, num){
 
 //this needs to give the entire list, finitely, as an array, starting from each node, from it to the prev
 NECDLL.prototype.extendAsArray = function(f){
-  throw Error ('not working yet');
-  const walker = NECL.walkTail(this);
-  return NECL.fromArray([...walker].map(x=>f(x)));//not right yet
+  //throw Error ('not working yet');
+  const walker = walkTail(this);
+  return NECDLL.fromArray([...walker].map(x=>f(x.toArray())));//not right yet
 }
 
 

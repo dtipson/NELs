@@ -15,7 +15,7 @@ Object.assign(
   require('./src/other-types/utility.js')
 );
 },{"./src/NonEmptyCircularDoubleLinkedList.js":2,"./src/NonEmptyCircularList.js":3,"./src/NonEmptyList.js":4,"./src/other-types/Promise-helpers.js":7,"./src/other-types/Tree.js":8,"./src/other-types/lenses.js":9,"./src/other-types/monoids.js":10,"./src/other-types/utility.js":11,"./src/utility/pointfree.js":12}],2:[function(require,module,exports){
-//single-linked circular lists
+//doubly-linked circular lists
 const { walkTail, walkPrev, walkTailForever, walkPrevForever} = require('../src/utility/walkers.js');
 const { chain } = require('../src/utility/pointfree.js');
 
@@ -44,9 +44,10 @@ NECDLL.fromArray = ([head,...arr]=[]) => {
   return arr.reduceRight((acc, x)=> acc.cons(x), RingNodeD(head)).prev;
 };
 
+RingNodeD.prototype.cons = function(x){
+  const newhead = new RingNodeD(x), 
+        oldhead = new RingNodeD(this.value);
 
-//iterates through the old list to build a new one with all the right links and values
-RingNodeD.prototype._link = function(newhead, oldhead){
   newhead.tail = oldhead;
   oldhead.prev = newhead;
   //simpler <-1-> to <-1,2-> case
@@ -54,6 +55,7 @@ RingNodeD.prototype._link = function(newhead, oldhead){
     newhead.prev = oldhead;
     oldhead.tail = newhead;
   }
+  //<-1,2-> to <-3,1,2-> case and beyond
   else{
     let ref = this.tail;
     let prev = oldhead;
@@ -65,10 +67,10 @@ RingNodeD.prototype._link = function(newhead, oldhead){
     newhead.prev = prev;
   }
   return newhead;
-};
+}
 
-RingNodeD.prototype.cons = function(x){
-  return this._link(new RingNodeD(x), new RingNodeD(this.value));
+RingNodeD.prototype.concat = function(x){
+  return this.cons(x).tail;
 }
 
 
@@ -103,15 +105,37 @@ NECDLL.prototype.ap = function(Ap){
 }
 
 NECDLL.prototype.flatten = function(){
-  return this.map(x=>x.value);
+  return this.chain(x=>x instanceof NECDLL ? x : NECDLL.of(x));
 }
+
+NECDLL.prototype.reduce = function(f, acc){
+  const walker = walkTail(this);
+  return this.toArray().reduce(f, acc);
+}
+
+//without Array.prototype modifications
+NECDLL.prototype.sequence = function(point){
+  return this.tail.reduce(
+    function(acc, x) {
+      return ap(
+        acc.map(innernel => othertype => innernel.concat(othertype) ),//puts this function in the type
+        x.map(NECDLL.of)//then applies the inner othertype value to it
+      );
+    },
+    chain(x=>point(NECDLL.of(x)))(this.value)
+  );
+};
+
+NECDLL.prototype.traverse = function(f, point){
+  return this.map(f).sequence(point||f);
+};
+
 
 
 NECDLL.prototype.size = function(el){
   const walker = walkTail(this);
   return [...walker].length;
 }
-
 
 NECDLL.prototype.at = function(index){
   if(index===0){
@@ -132,11 +156,11 @@ NECDLL.prototype.at = function(index){
 };
 
 NECDLL.prototype.last = function(num){
-  return !num ? this.before : this.at(-num);
+  return num===undefined ? this.before : this.at(-num);
 }
 
 NECDLL.prototype.next = function(num){
-  return !num ? this.tail : this.at(num);
+  return num===undefined ? this.tail : this.at(num);
 }
 
 
@@ -165,7 +189,10 @@ NECDLL.prototype.toReverseGenerator = function(horizon){
 
 //nearest values in an array, defaults to 2 nearest, when implemented, num can be a slice up to the entire array
 NECDLL.prototype.extendNear = function(f, num){
-  const walker = NECDLL.walkTail(this);
+  if(num){
+    throw new Error("num not implemented yet");
+  }
+  const walker = walkTail(this);
   return NECDLL.fromArray([...walker].map(x=>f([x.before.value,x.value,x.tail.value])));
 }
 
@@ -173,9 +200,9 @@ NECDLL.prototype.extendNear = function(f, num){
 
 //this needs to give the entire list, finitely, as an array, starting from each node, from it to the prev
 NECDLL.prototype.extendAsArray = function(f){
-  throw Error ('not working yet');
-  const walker = NECL.walkTail(this);
-  return NECL.fromArray([...walker].map(x=>f(x)));//not right yet
+  //throw Error ('not working yet');
+  const walker = walkTail(this);
+  return NECDLL.fromArray([...walker].map(x=>f(x.toArray())));//not right yet
 }
 
 
@@ -188,41 +215,11 @@ module.exports = {
 
 },{"../src/utility/pointfree.js":12,"../src/utility/walkers.js":13}],3:[function(require,module,exports){
 //single-linked circular lists
+const { walkTail, walkTailValues, walkTailForever } = require('../src/utility/walkers.js');
+const { chain } = require('../src/utility/pointfree.js');
+
 
 function NECL(){}
-
-//returns the nodes, one trip around from ref
-NECL.walkTail = function*(ref){
-  const start = ref;
-  let cur = ref.tail;
-  yield ref;
-  while(cur!==start){
-    yield cur;
-    cur = cur.tail;
-  }
-}
-
-//returns the nodes, one trip around from ref
-NECL.walkTailValue = function*(ref){
-  const start = ref;
-  let cur = ref.tail;
-  yield ref.value;
-  while(cur!==start){
-    yield cur.value;
-    cur = cur.tail;
-  }
-}
-
-//returns the actual values, not the nodes, endlessly
-NECL.walkForever = function*(ref, horizon){
-  let cur = ref.tail;
-  let i = 0;
-  yield ref.value;
-  while(true && (!horizon ||++i !==horizon)){
-    yield cur.value;
-    cur = cur.tail;
-  }
-}
 
 function Solo(value) {
   if (!(this instanceof Solo)) {
@@ -238,61 +235,56 @@ function RingNode(value, tail) {
     return new RingNode(value, tail);
   }
   Object.assign(this, {value, tail});
-  if(tail && tail.tail===undefined){//special case where new item needs to link to AND be linked to by a Solo
+  if(tail){
     tail.tail = this;
   }
   return this;
 }
 RingNode.prototype = Object.create(NECL.prototype);
 
+//pure ->1->
+Solo.prototype.cons = function(x){
+  return new RingNode(x, RingNode(this.value));
+}
+
 //pure
-Solo.prototype.cons = function(el){
-  return new RingNode(el, RingNode(this.value));
+RingNode.prototype.cons = function(x){
+  const newhead = new RingNode(x),
+        oldhead = new RingNode(this.value);
+
+  newhead.tail = oldhead;
+  let ref = this.tail;
+  let prev = oldhead;
+  while(ref !== this){
+    prev = prev.tail = new RingNode(ref.value);
+    ref = ref.tail;
+  }
+  return prev.tail = newhead;
 }
 
-//could we leverage this for fromArray?
-const impure_cons = (node, el) => {
-  const last = node.last();
-  const molo = new RingNode(el, RingNode(node.value, node.tail));
-  last.tail = molo;
-  return molo;
-}
-
-//not pure!
-RingNode.prototype.cons = function(el){
-  const last = this.last();
-  const molo = new RingNode(el, RingNode(this.value, this.tail));
-  last.tail = molo;
-  return molo;
-}
-
-//pure only in the bare val case? :/
-//doesn't handle solo + RingNode, and it can't use fromArray since THAT uses concat!
-//need to refactor!
-Solo.prototype.concat = function(val){
+//concat can fall back to cons()+.tail
+//needs to handle ring splices
+NECL.prototype.concat = function(val){
   return this.cons(val instanceof NECL ? val.value : val).tail;
 }
 
-RingNode.prototype.concat = function(val){
-  const last = this.last();
-  const molo = new RingNode(val instanceof NECL ? val.value : val, this);
-  last.tail = molo;
-  return this;
-}
-
-
-NECL.prototype.last = function(){
-  const walker = NECL.walkTail(this);
-  return [...walker].pop();
+NECL.prototype.last = function(num){
+  if(num===undefined){
+    const walker = walkTail(this);
+    return [...walker].pop().value;
+  }else{
+    let len = this.size();
+    return this.at(len-num);
+  }
 }
 
 NECL.prototype.size = function(el){
-  const walker = NECL.walkTail(this);
+  const walker = walkTail(this);
   return [...walker].length;
 }
 
 NECL.prototype.next = function(num){
-  return !num ? this.tail : this.at(num);
+  return num===undefined ? this.tail.value : this.at(num);
 }
 
 NECL.prototype.extract = function(){
@@ -301,16 +293,10 @@ NECL.prototype.extract = function(){
 
 //this needs to go through each item and pass it the entire list starting from _its_ perspective
 NECL.prototype.extend = function(f){
-  const walker = NECL.walkTail(this);
+  const walker = walkTail(this);
   return NECL.fromArray([...walker].map(x=>f(x)));
 }
 
-//this needs to give the entire list, finitely, as an array, starting from each node
-NECL.prototype.extendAsArray = function(f){
-  throw Error ('not working yet')
-  const walker = NECL.walkTail(this);
-  return NECL.fromArray([...walker].map(x=>f(x)));
-}
 NECL.prototype.duplicate = function(i){
   return this.extend(x=>x);
 }
@@ -322,7 +308,7 @@ Solo.prototype.map = function(f){
 
 //super duper cheating.... or the only way to make it work?
 RingNode.prototype.map = function(f){
-  const walker = NECL.walkTail(this);
+  const walker = walkTail(this);
   return NECL.fromArray([...walker].map(x=>f(x.value)));
 }
 
@@ -331,34 +317,38 @@ Solo.prototype.chain = function(f){
 }
 
 RingNode.prototype.chain = function(f){
-  const walker = NECL.walkTail(this);
-  return NECL.fromArray([...walker].chain(x=>f(x.value).toArray()));
+  const walker = walkTail(this);
+  return NECDLL.fromArray(
+    chain(x=>f(x.value).toArray())([...walker])//switches to arrays twice, erk...
+  );
 }
 
 NECL.prototype.ap = function(Ap){
   return this.chain(f=>Ap.map(f));
 }
 
-Solo.prototype.sequence = function(point){
-  return this.value.chain(x=>point(Solo(x)))//slllllloppy?
-}
+
 
 Solo.prototype.reduce = function(f, acc){
   return f(acc, this.value);
 }
 RingNode.prototype.reduce = function(f, acc){
-  const walker = NECL.walkTail(this);
+  const walker = walkTail(this);
   return this.toArray().reduce(f, acc);
 }
 
+Solo.prototype.sequence = function(point){
+  return chain(x=>point(NECL.of(x)))(this.value);
+}
 RingNode.prototype.sequence = function(point){
   return this.tail.reduce(
     function(acc, x) {
-      return acc
-        .map(innernel => othertype => innernel.concat(othertype) )//puts this function in the type
-        .ap(x.map(NECL.of));//then applies the inner othertype value to it
+      return ap(
+        acc.map(innernel => othertype => innernel.concat(othertype) ),//puts this function in the type
+        x.map(NECL.of)
+      );//then applies the inner othertype value to it
     },
-    this.value.chain(x=>point(Solo(x)))//slllllloppy?
+    chain(x=>point(NECL.of(x)))(this.value)
   );
 };
 
@@ -368,7 +358,7 @@ NECL.prototype.traverse = function(f, point){
 
 NECL.prototype.at = function(index){
   if(index===0){
-    return this;
+    return this.value;
   }
   const len = this.size();
 
@@ -380,7 +370,7 @@ NECL.prototype.at = function(index){
     index = -index+len;
   }
 
-  return Array.from({length:index}).reduce((acc, x)=>acc.tail, this);
+  return Array.from({length:index}).reduce((acc, x)=>acc.tail, this).value;
 
 };
 
@@ -388,7 +378,7 @@ Solo.prototype.toString = function(el){
   return `->${this.value}->`;
 }
 RingNode.prototype.toString = function(el){
-  const walker = NECL.walkTail(this);
+  const walker = walkTail(this);
   return `->${[...walker].map(x=>x.value).join(',')}->`;
 }
 
@@ -397,13 +387,13 @@ Solo.prototype.toArray = function(el){
   return [this.value];
 }
 RingNode.prototype.toArray = function(el){
-  const walker = NECL.walkTailValue(this);
+  const walker = walkTailValues(this);
   return [...walker];
 }
 
 //return a generator.  Remember, without the horizon, it's INFINITE, so use it wisely, do not [...x] it or else you will die
 NECL.prototype.toGenerator = function(horizon){
-  return NECL.walkForever(this, horizon);
+  return walkTailForever(this, horizon);
 }
 
 NECL.of = x => new Solo(x);
@@ -414,16 +404,28 @@ NECL.fromArray = ([head,...arr]=[]) => {
   return arr.reduce((acc, x)=> acc.concat(Solo(x)), Solo(head));
 };
 
+
+//this needs to give the entire list, finitely, as an array, starting from each node, from it to the prev
+NECL.prototype.extendAsArray = function(f){
+  //throw Error ('not working yet');
+  const walker = walkTail(this);
+  return NECL.fromArray([...walker].map(x=>f(x.toArray())));//not right yet
+}
+
+
 module.exports = {
   NECL
 }
 
-},{}],4:[function(require,module,exports){
-//prototype
+},{"../src/utility/pointfree.js":12,"../src/utility/walkers.js":13}],4:[function(require,module,exports){
+const { walkTailValuesForever } = require('../src/utility/walkers.js');
+
+//create an (empty) prototype
 function NEL(){
   throw new Error('Use NEL.of or NEL.fromArray to construct a NEL');
 }
 
+//create a type to hold single values
 function One(value) {
   if (!(this instanceof One)) {
     return new One(value);
@@ -432,6 +434,7 @@ function One(value) {
 }
 One.prototype = Object.create(NEL.prototype);
 
+//create a type that can hold a value AND point to another value
 function Many(value, tail) {
   if (!(this instanceof Many)) {
     return new Many(value, tail);
@@ -440,9 +443,15 @@ function Many(value, tail) {
 }
 Many.prototype = Object.create(NEL.prototype);
 
-//pure, does not mutate because lower nodes are not affected: they're just linked to by reference.
-NEL.prototype.cons = function(newHead){
-  return new Many(newHead, this);
+// lift a single value up into the type
+// of :: x -> NEL[x]
+NEL.of = x => new One(x);
+
+//prepend a value, creating a new NEL
+// cons :: NEL[a] -> b => NEL[b,a]
+//pure, does not mutate because lower nodes are not "affected": they're just linked to by reference.
+NEL.prototype.cons = function(newHeadValue){
+  return new Many(newHeadValue, this);
 }
 
 //here, note that only a One ever actually performs the actual concat operation. A Many delegates the operation to
@@ -456,7 +465,7 @@ Many.prototype.concat = function(otherNEL){
   return new Many(this.value, this.tail.concat(otherNEL));
 }
 
-//this is mostly to stay in sync with circular methods: a static length prop works great with NELs
+//this is mostly to stay in sync with circular methods: a static length prop works fine with NELs
 One.prototype.size = function(){
   return 1;
 }
@@ -464,23 +473,13 @@ Many.prototype.size = function(){
   return this.length;
 }
 
-//keeps recusively cycling through tails until it hits a One, then returns the head
+//keeps recusively cycling through tails until it hits a One, then returns its value
 // last :: NEL[a...z] -> z
 NEL.prototype.last = function(){
   return this.tail ? this.tail.last() : this.value;
 }
 
-
-// forEach :: NEL[...a] -> NEL[...a] (but has side-effects)
-One.prototype.forEach = function(f){
-  return f(this.value) && this;
-}
-Many.prototype.forEach = function(f){
-  f(this.value);
-  this.tail.forEach(f);
-  return this;
-}
-
+//Functor
 // map :: NEL[...a] ~> (a->b) ~> NEL[...b]
 One.prototype.map = function(f){
   return new One(f(this.value));
@@ -489,17 +488,13 @@ Many.prototype.map = function(f){
   return new Many(f(this.value), this.tail.map(f));
 }
 
-// this is also effectively what map does... if extend is already defined
-// NEL.prototype.map = function(f){
-//   return this.extend(list=>f(list.value));
-// }
-
-//should returns a Maybe type around the result because it can fail!
+// not implemented as it should return a Maybe type around the result... because it can fail!
 // NEL.prototype.filter = function(f){
 //   const maybeHead = f(this.value) ? Just(One(this.value)) : Nothing;
 //   return this.tail ? maybeHead.concat(this.tail.filter(f)) : maybeHead;
 // }
 
+// this could also potentially fail, as empty lists aren't allowed
 // slice :: NEL[a,b,c,d...] -> Int(|Int) -> NEL[b,c]
 NEL.prototype.slice = function(begin, end) {
   // IE < 9 gets unhappy with an undefined end argument
@@ -531,74 +526,9 @@ NEL.prototype.slice = function(begin, end) {
     throw new Error(`Cannot return an empty non-empty list from [${this.toString()}].slice(${begin}-${end})`)
   }
 
-
 };
 
-// sequence :: NEL[Type[a]] ~> (a->Type[a]) ~> Type[NEL[a]]
-NEL.prototype.sequence = function(point){
-    if(!this.tail){
-      return this.value.chain(x=>point(One(x)));//slllllloppy?
-    }
-    return this.tail.reduce(
-      function(acc, x) {
-        return acc
-          .map(innernel => othertype => innernel.concat(othertype) )//puts this function in the type
-          .ap(x.map(NEL.of));//then applies the inner othertype value to it
-      },
-      this.value.chain(x=>point(One(x)))//slllllloppy?
-    );
-};
-
-//cheating!
-// NEL.prototype.sequence = function(point){
-//     if(!this.tail){
-//       return this.head.chain(x=>point(One(x)));//slllllloppy?
-//     }
-//     return this.toArray().sequence(point).map(NEL.fromArray).map(x=>x.reduce((acc,x)=>x,Nothing));
-// };
-
-NEL.prototype.traverse = function(f, point){
-    return this.map(f).sequence(point||f);
-};
-
-
-One.prototype.flatten = function(){
-  return this.value;
-}
-Many.prototype.flatten = function(){
-  return new Many(this.value.value, this.tail.flatten());
-}
-
-NEL.prototype.chain = function(f){
-  return this.map(f).flatten();
-}
-NEL.prototype.ap = function(Ap){
-  return this.chain(x=>Ap.map(x));
-}
-
-One.prototype.reverse = function(){
-  return this;
-}
-Many.prototype.reverse = function(){
-  const tailReversed = this.tail.reverse();
-  return Many(
-    tailReversed.value,
-    !tailReversed.tail ? 
-      One(this.value) : 
-      tailReversed.tail.concat(One(this.value))
-  );
-}
-
-One.prototype.extend = function(f){
-  return new One(f(this));
-}
-Many.prototype.extend = function(f){
-  return new Many(f(this), this.tail.extend(f));
-}
-NEL.prototype.duplicate = function(i){
-  return this.extend(x=>x);
-}
-
+//Folds
 
 One.prototype.reduce = function(f, acc){
   return f(acc, this.value);
@@ -614,6 +544,65 @@ Many.prototype.reduceRight = function(f, acc){
   return f(this.tail.reduceRight(f, acc), this.value);
 }
 
+//Traversables
+// sequence :: NEL[Type[a]] ~> (a->Type[a]) ~> Type[NEL[a]]
+NEL.prototype.sequence = function(point){
+    if(!this.tail){
+      return chain(x=>point(NEL.of(x)))(this.value)
+    }
+    return this.tail.reduce(
+      function(acc, x) {
+        return ap(
+          acc.map(innernel => othertype => innernel.concat(othertype) ),//puts this function in the type
+          x.map(NEL.of)//then applies the inner othertype value to it
+        );
+      },
+      chain(x=>point(NEL.of(x)))(this.value)
+    );
+};
+
+NEL.prototype.traverse = function(f, point){
+    return this.map(f).sequence(point||f);
+};
+
+
+One.prototype.flatten = NEL.prototype.extract = function(){
+  return this.value;
+};
+Many.prototype.flatten = function(){
+  return new Many(this.value.value, this.tail.flatten());
+};
+
+NEL.prototype.chain = function(f){
+  return this.map(f).flatten();
+};
+NEL.prototype.ap = function(Ap){
+  return this.chain(x=>Ap.map(x));
+};
+
+One.prototype.reverse = function(){
+  return this;
+};
+Many.prototype.reverse = function(){
+  const tailReversed = this.tail.reverse();
+  return Many(
+    tailReversed.value,
+    !tailReversed.tail ? 
+      One(this.value) : 
+      tailReversed.tail.concat(One(this.value))
+  );
+};
+
+One.prototype.extend = function(f){
+  return new One(f(this));
+}
+Many.prototype.extend = function(f){
+  return new Many(f(this), this.tail.extend(f));
+}
+NEL.prototype.duplicate = function(i){
+  return this.extend(x=>x);
+}
+
 
 NEL.prototype.at = function(i){
   return i === 0 ? this.value : this.tail && this.tail.at(i-1);
@@ -625,11 +614,6 @@ NEL.prototype.equals = function(otherNEL){
     ((this.tail && otherNEL.tail && this.tail.equals(otherNEL.tail)) || (!this.tail && !otherNEL.tail));
 }
 
-
-NEL.prototype.extract = function(f){
-  return this.value;
-}
-
 NEL.prototype.toArray = function(f){
   return this.reduce((acc,x)=>acc.concat(x), [])
 }
@@ -637,26 +621,9 @@ NEL.prototype.toString = function(f){
   return this.toArray().toString();
 }
 
-
-//returns the nodes, one trip around from ref
-NEL.walkTailValuesForever = function*(ref, horizon){
-  const start = ref;
-  let i = 0;
-  let cur = ref.tail||ref;
-  yield ref.value;
-  while(!horizon || ++i !== horizon){
-    yield cur.value;
-    cur = (cur.tail||start);
-  }
-}
-
 NEL.prototype.toGenerator = function(horizon){
-  return NEL.walkTailValuesForever(this, horizon);
+  return walkTailValuesForever(this, horizon);
 }
-
-
-
-NEL.of = x => new One(x);
 
 //returns a maybe type because it can fail!
 NEL.fromArray = function([head, ...arr]=[]){
@@ -667,12 +634,26 @@ NEL.fromArray = function([head, ...arr]=[]){
 }
 
 
+//this needs to give the entire list, finitely, as an array, starting from each node, from it to the prev
+NEL.prototype.extendAsArray = function(exfn){
+  return this.extend(remainingList=>exfn(remainingList.toArray()));
+}
+
+// forEach :: NEL[...a] -> NEL[...a] (but has side-effects)
+One.prototype.forEach = function(f){
+  return f(this.value) && this;
+}
+Many.prototype.forEach = function(f){
+  f(this.value);
+  this.tail.forEach(f);
+  return this;
+}
 
 
 module.exports = {
   NEL
 }
-},{}],5:[function(require,module,exports){
+},{"../src/utility/walkers.js":13}],5:[function(require,module,exports){
 function Const(value) {
   if (!(this instanceof Const)) {
     return new Const(value);
@@ -1272,15 +1253,24 @@ const S = b => f => x => b(x,f(x));
 //String -> Object -> Arguments -> ?
 const invoke = methodname => obj => (...args) => obj[methodname](...args);
 
-const ap = curry((A, A2) => A.ap(A2));
-const map = curry((f, F) => F.map(x=>f(x)));//guard against Array.map
+
+const map = curry((f, F) => typeof F.map==="function" ? F.map(x=>f(x)) : F.map(f) );//guard against Array.map, fallback to promises
+
+//Array/Promise polyfilling
+const chain = curry(
+  (f, M) => typeof M.chain==="function" ? M.chain(f) : (typeof M.then==="function" ? M.then(f) : [].concat(...M.map(f)))//array chain fallback
+);
+
+
+//Array polyfilling
+const ap = curry(
+  (Ap, Ap2) => typeof Ap.ap==="function" ? Ap.ap(Ap2) : Ap.reduce( (acc, f) => acc.concat( Ap2.map(f) ), [])
+);
+
 const reduce = curry((f, acc, F) => F.reduce(f,acc));
-const chain = curry((f, M) => typeof M.chain==="function" ? M.chain(f) : [].concat(...M.map(f)));//array chain fallback
 
-
-
-const liftA2 = curry((f, A1, A2) => A1.map(f).ap(A2));//
-const liftA3 = curry((f, A1, A2, A3) => A1.map(f).ap(A2).ap(A3));
+const liftA2 = curry((f, A1, A2) => ap(A1.map(f), A2));//
+const liftA3 = curry((f, A1, A2, A3) => ap(ap(A1.map(f), A2), A3)    );
 //look ma, no map!
 //const liftA22 = curry((f, A1, A2) => A1.constructor.of(f).ap(A1).ap(A2));
 
@@ -1419,6 +1409,16 @@ const walkTail = function*(ref){
   }
 }
 
+const walkTailValues = function*(ref){
+  const start = ref;
+  let cur = ref.tail;
+  yield ref.value;
+  while(cur!==start){
+    yield cur.value;
+    cur = cur.tail;
+  }
+}
+
 //returns the nodes, one trip around backwards from ref
 const walkPrev = function*(ref){
   const start = ref;
@@ -1453,10 +1453,25 @@ const walkPrevForever = function*(ref, horizon){
   }
 }
 
+//returns the nodes, but repeats at start for non-circular nodes
+const walkTailValuesForever = function*(ref, horizon){
+  const start = ref;
+  let i = 0;
+  let cur = ref.tail||ref;
+  yield ref.value;
+  while(!horizon || ++i !== horizon){
+    yield cur.value;
+    cur = (cur.tail||start);
+  }
+}
+
+
 module.exports ={
   walkTail,
+  walkTailValues,
   walkPrev,
   walkTailForever,
-  walkPrevForever
+  walkPrevForever,
+  walkTailValuesForever
 };
 },{}]},{},[1]);

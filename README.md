@@ -1,3 +1,9 @@
+#Non-Empty (Linked) Lists
+
+These datatypes are similar to Arrays, but built as linked-lists, where most nodes contain both a value and a reference to another node. They also implement most of the relevant [Fantasy-Land](https://github.com/fantasyland/fantasy-land) interfaces for common algebraic structures. (In particular: Setoid, Semigroup, Functor, Apply, Applicative, Foldable, Traversable, Chain, Monad, Extend, & Comonad). Their usage as Comonads is probably the most interesting, as they provide different .extend models than would be available on native Arrays. The can also be used to generate infinite, repeating streams of values, or in the case of circular lists, traversed infinitely.
+
+While mostly academic and experimental atm (tests forthcoming), they are often more intelligible than regular Arrays for certain problems (celluar automata, slideshows, playlists, etc.).
+
 ##Non Empty List : NEL
 
 The `NEL` type represents a list that _cannot_ be empty (which guarantees freedom from certain kinds of traversal errors). You can create such a list from literally any value (including an Array, another Non-Empty List) or Arrays of values (though to do interesting, predictable things with lists, it's usually important that all items be of the same type of thing). A `NEL` of just a single item will have a sub-type of `One` and any list of _more_ than one thing will have intermediary nodes sub-typed as `Many` ultimately terminating in a `One`.  Each node holds a value and then, if it's a `Many` node, also a reference to the next value at `.tail`
@@ -12,7 +18,7 @@ Circular lists have the additional ability to generate a potentially infinite st
 
 The `NECDLL` type represents a list that cannot be empty and is also circular, like a `NECL`. But, unlike a `NECL`, each node _always_ links to a _previous_ node as well.  This means that it can be traversed in _either_ direction, either infinitely or finitely: whichever you please.
 
-A single node will be sub-typed `SoloD` and its `.tail` and `.before` references will both point to itself. A list with two or more items will be sub-typed `RingNodeD`. In the case of two nodes, each one's `.tail` and `.before` references will point to each other.  In the case of 3 or more, the references will form a continuous chain.
+All nodes will be sub-typed `RingNodeD.` For single node-lists, its `.tail` and `.before` references will both point to itself. A list with two or more items will be sub-typed `RingNodeD`. In the case of two nodes, each one's `.tail` and `.before` references will point to each other.  In the case of 3 or more, the references will form a continuous chain.
 
 ###Methods/Interfaces
 
@@ -29,13 +35,13 @@ Type-signature Key:
 ```hs
 :: a -> NEList[a]
 ```
-Puts a value inside a list type (this single node list will be subtyped as a `One`, `Solo`, or `SoloD`)
+Puts a value inside a list type (this single node list will be subtyped as a `One`, `Solo`, or `RingNodeD`)
 
 #### `.fromArray( [...a] )`
 ```hs
 :: [...a] -> NEList[...a]
 ```
-Transforms an Array into a `NEList` type. Will throw an error if the array is empty (could be enhanced to return a Maybe Functor instead)!
+Transforms a native Array into a `NEList` type. Will throw an error if the array is empty (could be enhanced to return a Maybe Functor instead)!
 
 ### Interaction/Extension
 
@@ -51,7 +57,7 @@ Adds a value to the "head" of the list (all nodes will now be subtyped as a `Man
 ```
 Adds a single value or a single list onto the "tail" of the list (all nodes will now be subtyped as a `Many`, `RingNode`, or `RingNodeD`)
 
-*Note* This is intended to eventually work on NEList elements with multiple elements for all types, but currently only works properly for `NEL` types.  For the circular types, it only works when the new list is a `Solo` or `SoloD`
+*Note* This is intended to eventually work on NEList elements with multiple elements for all types, but that currently only works properly for `NEL` types.  For the circular types, it only works properly when the new list is a `Solo` or `SoloD`
 
 
 ###Transformation (Immutable)
@@ -74,26 +80,40 @@ Recursively applies all the values in `NEList` to all the functions inside the `
 ```
 Transforms each value in a list by applying each value to a function `fn` which returns a new NEList structure, which is then flattened into a single NElist
 
-#### `.extend( fn )` [*Comonad*](https://github.com/fantasyland/fantasy-land#comonad)
-```hs
-:: NEList[...a] ~> (NEList[a] -> b) ~> NEList[...b]
-```
-Transforms each value in a list by applying the entire NEList structure to a function `fn` that returns a single transformed value
-
 #### `.duplicate( )` [*Comonad*](https://github.com/fantasyland/fantasy-land#comonad)
 ```hs
 :: NEList[...a] ~> NEList[...NEList[...a]]
 ```
 Transforms each value into the entire list (or head and remaining tail of a list, in the case of a `NEL`), as seen from each value's perspective.
 
-
-<p align="center">(NECL &amp; NECDLL only)</p>
+#### `.extend( fn )` [*Comonad*](https://github.com/fantasyland/fantasy-land#comonad)
+```hs
+:: NEList[...a] ~> (NEList[a] -> b) ~> NEList[...b]
+```
+Transforms each value in a list by applying the entire NEList structure to a function `fn` that returns a single transformed value
 
 #### `.extendAsArray( fn )`
 ```hs
 :: NEList[a, b, c...] ~> ( [a, b, c...] -> x) ~> NEList[x, y, z...]
 ```
-Transforms each value in a list by applying the entire list, as a finite Array (starting from each value forwards), to a function `fn` that returns a single transformed value
+Transforms each value in a list by applying the entire list, but passed as a finite native Array (starting from each value then moving forwards), to a function `fn` that then returns a single transformed value.
+
+```
+NEL.fromArray([1,2,3]).extendAsArray(x=> !console.log(x) && x.value);
+[1,2,3]
+[2,3]
+[1]
+
+NECL.fromArray([1,2,3]).extendAsArray(x=> !console.log(x) && x.value);
+[1,2,3]
+[2,3,1]
+[3,1,2]
+
+NECDLL.fromArray([1,2,3]).extendAsArray(x=> !console.log(x) && x.value);
+[1,2,3]
+[2,3,1]
+[3,1,2]
+```
 
 <p align="center">(NECDLL only)</p>
 
@@ -137,15 +157,13 @@ NECDLL[1,2,3].toString(): `'<-1,2,3->'`
 ```
 Returns the list as a normal array.  With circular lists, this obviously means losing the "circularity" context: the resulting Array will simply start with the "current" node and end with the node previous to it.
 
- <p align="center">(NECL &amp; NECDLL only)</p>
-
 #### `.toGenerator( Int )`
 ```hs
 :: NEList[a] -> *generator*
 ```
-Returns a generator iterating through the list "forwards" (i.e. .tail.tail.tail ...etc)
+Returns a generator iterating through the list "forwards" (i.e. .tail.tail.tail ...etc), infinitely repeating (even for regular `NEL`)
 
-*Warning*: these are infinite lists we're talking about, so running something like [...generator] will crash browsers.  Either iterate over them in a safe, controlled fashion, or pass the optional `Int` "horizon" paramter into the function, which will cap the total number of iterations it returns.
+*Warning*: these are infinite lists we're talking about, so running something like [...generator] will crash your browser.  Either iterate over them in a safe, controlled fashion, or pass the optional `Int` "horizon" paramter into the function, which will cap the total number of iterations it can return.
 
 ```
 var g = NECDLL.fromArray([1,2,3,4,5,6]).toGenerator();

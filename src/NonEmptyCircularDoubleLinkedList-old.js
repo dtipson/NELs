@@ -131,6 +131,9 @@ NECDLL.prototype.extend = function(f){
 
 //nearest values in an array, defaults to 2 nearest, when implemented, num can be a slice up to the entire array
 NECDLL.prototype.extendNear = function(f, num){
+  if(num){
+    throw new Error("num not implemented yet");
+  }
   const walker = NECDLL.walkTail(this);
   return NECDLL.fromArray([...walker].map(x=>f([x.before.value,x.value,x.tail.value])));
 }
@@ -141,7 +144,7 @@ NECDLL.prototype.extendNear = function(f, num){
 NECDLL.prototype.extendAsArray = function(f){
   throw Error ('not working yet');
   const walker = NECL.walkTail(this);
-  return NECL.fromArray([...walker].map(x=>f(x)));//not right yet
+  return NECL.fromArray([...walker].map(x=>f(x.toArray())));//not right yet
 }
 
 NECDLL.prototype.duplicate = function(i){
