@@ -39,7 +39,7 @@ Transforms an Array into a `NEList` type. Will throw an error if the array is em
 
 ### Interaction/Extension
 
-#### `.cons( a )` (Mutates)
+#### `.cons( a )`
 ```hs
 :: NEList[a] -> b -> NEList[b, a]
 ```
