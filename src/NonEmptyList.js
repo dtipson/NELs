@@ -206,6 +206,11 @@ NEL.prototype.equals = function(otherNEL){
 NEL.prototype.toArray = function(f){
   return this.reduce((acc,x)=>acc.concat(x), [])
 }
+
+NEL.prototype.join = function(separator=','){
+  return this.toArray().join(separator);
+}
+
 NEL.prototype.toString = function(f){
   return this.toArray().toString();
 }

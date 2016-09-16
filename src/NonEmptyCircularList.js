@@ -161,10 +161,16 @@ NECL.prototype.at = function(index){
 Solo.prototype.toString = function(el){
   return `->${this.value}->`;
 }
-RingNode.prototype.toString = function(el){
+RingNode.prototype.toString = function(separator=','){
   const walker = walkTail(this);
-  return `->${[...walker].map(x=>x.value).join(',')}->`;
+  return `<-${[...walker].map(x=>x.value).join(separator)}->`;
 }
+
+NECL.prototype.join = function(separator=','){
+  const walker = walkTail(this);
+  return [...walker].map(x=>x.value).join(separator);
+}
+
 
 
 Solo.prototype.toArray = function(el){

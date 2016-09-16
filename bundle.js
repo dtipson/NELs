@@ -156,21 +156,24 @@ NECDLL.prototype.at = function(index){
 };
 
 NECDLL.prototype.last = function(num){
-  return num===undefined ? this.before : this.at(-num);
+  return num===undefined ? this.prev : this.at(-num);
 }
 
 NECDLL.prototype.next = function(num){
   return num===undefined ? this.tail : this.at(num);
 }
 
-
-
-NECDLL.prototype.toString = function(el){
+NECDLL.prototype.join = function(separator=','){
   const walker = walkTail(this);
-  return `<-${[...walker].map(x=>x.value).join(',')}->`;
+  return [...walker].map(x=>x.value).join(separator);
 }
 
-NECDLL.prototype.toArray = function(el){
+NECDLL.prototype.toString = function(separator=','){
+  const walker = walkTail(this);
+  return `<-${[...walker].map(x=>x.value).join(separator)}->`;
+}
+
+NECDLL.prototype.toArray = function(){
   const walker = walkTail(this);
   return [...walker].map(x=>x.value);
 }
@@ -184,7 +187,6 @@ NECDLL.prototype.toReverseGenerator = function(horizon){
   return walkPrevForever(this, horizon);
 }
 
-
 //Non-standard extends!
 
 //nearest values in an array, defaults to 2 nearest, when implemented, num can be a slice up to the entire array
@@ -193,7 +195,7 @@ NECDLL.prototype.extendNear = function(f, num){
     throw new Error("num not implemented yet");
   }
   const walker = walkTail(this);
-  return NECDLL.fromArray([...walker].map(x=>f([x.before.value,x.value,x.tail.value])));
+  return NECDLL.fromArray([...walker].map(x=>f([x.prev.value,x.value,x.tail.value])));
 }
 
 //NECDLL.fromArray(window.crypto.getRandomValues(new Int8Array(68)).map(x=>x>=0?1:0)).extend(dll=>[...NECDLL.walkTail(dll)].slice(0,10).map(x=>x.value).reduce((acc,x)=>acc+x,0)).toString()
@@ -377,10 +379,16 @@ NECL.prototype.at = function(index){
 Solo.prototype.toString = function(el){
   return `->${this.value}->`;
 }
-RingNode.prototype.toString = function(el){
+RingNode.prototype.toString = function(separator=','){
   const walker = walkTail(this);
-  return `->${[...walker].map(x=>x.value).join(',')}->`;
+  return `<-${[...walker].map(x=>x.value).join(separator)}->`;
 }
+
+NECL.prototype.join = function(separator=','){
+  const walker = walkTail(this);
+  return [...walker].map(x=>x.value).join(separator);
+}
+
 
 
 Solo.prototype.toArray = function(el){
@@ -626,6 +634,11 @@ NEL.prototype.equals = function(otherNEL){
 NEL.prototype.toArray = function(f){
   return this.reduce((acc,x)=>acc.concat(x), [])
 }
+
+NEL.prototype.join = function(separator=','){
+  return this.toArray().join(separator);
+}
+
 NEL.prototype.toString = function(f){
   return this.toArray().toString();
 }
