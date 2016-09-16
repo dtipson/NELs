@@ -2,7 +2,7 @@
 
 These datatypes are similar to Arrays, but built as linked-lists, where most nodes contain both a value and a reference to another node. They also implement most of the relevant [Fantasy-Land](https://github.com/fantasyland/fantasy-land) interfaces for common algebraic structures. (In particular: Setoid, Semigroup, Functor, Apply, Applicative, Foldable, Traversable, Chain, Monad, Extend, & Comonad). Their usage as Comonads is probably the most interesting, as they provide different .extend models than would be available on native Arrays. The can also be used to generate infinite, repeating streams of values, or in the case of circular lists, traversed infinitely.
 
-While mostly academic and experimental atm (tests forthcoming), they are often more intelligible than regular Arrays for certain problems (celluar automata, slideshows, playlists, etc.).
+While mostly academic and experimental atm (tests forthcoming), they are often more intelligible than regular Arrays for certain problems (celluar automata, slideshows, playlists, etc.).  There are currently 3 type flavors:
 
 ##Non Empty List : NEL
 
