@@ -45,7 +45,7 @@ Transforms an Array into a `NEList` type. Will throw an error if the array is em
 ```
 Adds a value to the "head" of the list (all nodes will now be subtyped as a `Many`, `RingNode`, or `RingNodeD`) and returns it (now pointing at the new head). `NEL.of(9).cons(5).extract();//-> 5`
 
-#### `.concat( a || NEList )` (Currently, Mutates: BAD)
+#### `.concat( a || NEList )`
 ```hs
 :: NEList[a] -> b -> NEList[b, a]
 ```

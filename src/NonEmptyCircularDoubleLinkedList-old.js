@@ -129,7 +129,7 @@ NECDLL.prototype.extend = function(f){
   return NECDLL.fromArray([...walker].map(x=>f(x)));
 }
 
-//nearest values in an array, defaults to 2 nearest, num can be a slice up to the entire array
+//nearest values in an array, defaults to 2 nearest, when implemented, num can be a slice up to the entire array
 NECDLL.prototype.extendNear = function(f, num){
   const walker = NECDLL.walkTail(this);
   return NECDLL.fromArray([...walker].map(x=>f([x.before.value,x.value,x.tail.value])));

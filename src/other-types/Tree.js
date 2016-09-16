@@ -17,6 +17,9 @@ Leaf.prototype = Object.create(Tree.prototype);
 Leaf.prototype.toString = function(){
   return ` Leaf(${this.val}, ${this.ann})`;
 };
+Leaf.prototype.toJSON = function(){
+  return this.ann;
+};
 Leaf.prototype.map = function(f){
   return new Leaf(this.val, f(this.ann));
 };
@@ -56,6 +59,12 @@ Branch.prototype = Object.create(Tree.prototype);
 Branch.prototype.toString = function(){
   return ` Branch(${this.ann}\n  ${this.left},\n  ${this.right}\n )`;
 };
+
+Branch.prototype.toJSON = function(){
+  return {left:this.left.toJSON(),right:this.right.toJSON(),ann: this.ann};
+};
+
+
 Branch.prototype.map = function(f){
   return new Branch(this.left.map(f), this.right.map(f), f(this.ann));
 };

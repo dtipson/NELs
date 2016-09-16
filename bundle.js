@@ -161,6 +161,26 @@ NECDLL.prototype.toReverseGenerator = function(horizon){
 }
 
 
+//Non-standard extends!
+
+//nearest values in an array, defaults to 2 nearest, when implemented, num can be a slice up to the entire array
+NECDLL.prototype.extendNear = function(f, num){
+  const walker = NECDLL.walkTail(this);
+  return NECDLL.fromArray([...walker].map(x=>f([x.before.value,x.value,x.tail.value])));
+}
+
+//NECDLL.fromArray(window.crypto.getRandomValues(new Int8Array(68)).map(x=>x>=0?1:0)).extend(dll=>[...NECDLL.walkTail(dll)].slice(0,10).map(x=>x.value).reduce((acc,x)=>acc+x,0)).toString()
+
+//this needs to give the entire list, finitely, as an array, starting from each node, from it to the prev
+NECDLL.prototype.extendAsArray = function(f){
+  throw Error ('not working yet');
+  const walker = NECL.walkTail(this);
+  return NECL.fromArray([...walker].map(x=>f(x)));//not right yet
+}
+
+
+
+
 
 module.exports = {
   NECDLL
@@ -822,6 +842,9 @@ Leaf.prototype = Object.create(Tree.prototype);
 Leaf.prototype.toString = function(){
   return ` Leaf(${this.val}, ${this.ann})`;
 };
+Leaf.prototype.toJSON = function(){
+  return this.ann;
+};
 Leaf.prototype.map = function(f){
   return new Leaf(this.val, f(this.ann));
 };
@@ -861,6 +884,12 @@ Branch.prototype = Object.create(Tree.prototype);
 Branch.prototype.toString = function(){
   return ` Branch(${this.ann}\n  ${this.left},\n  ${this.right}\n )`;
 };
+
+Branch.prototype.toJSON = function(){
+  return {left:this.left.toJSON(),right:this.right.toJSON(),ann: this.ann};
+};
+
+
 Branch.prototype.map = function(f){
   return new Branch(this.left.map(f), this.right.map(f), f(this.ann));
 };
