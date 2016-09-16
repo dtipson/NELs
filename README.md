@@ -142,7 +142,7 @@ Removes the current value from the list, where "the" value can be seen as the cu
 
 #### `.at( Int )`
 ```hs
-:: NEList[a] ~> a
+:: NEList[...a] -> Int -> a
 ```
 Gets a value from a particular 0-based position in the list. Supports negative indexes as well. In the case of circular lists, any integer value, no matter how high or low, maps to some value's position in the array relative to the current reference.  
 
