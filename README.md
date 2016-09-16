@@ -127,17 +127,24 @@ Transforms each value in a list by applying an Array of the surrounding values (
 
 ###Folds
 
-#### `.reduce( fn, b )`
+#### `.reduce( fn, acc )`
 ```hs
 :: NEList[...a] ~> (b -> a -> b) -> b ~> b
 ```
-Applies the binary `fn` to each element in the list, using `acc` as the initial `b` value. This allows you fold the entire (finitely envisioned) list into another type. For circular methods, this starts with the current element and iterates forwards through the list tailwise.
+Applies the binary `fn` to each element in the list, using `acc` as the initial acculator/`b` value. This allows you fold the entire (finitely modeled) list into another type. For circular methods, this starts with the currently referenced element and iterates forwards through the list tailwise.
 
 #### `.extract()` [*extract*](https://github.com/fantasyland/fantasy-land#extract-method)
 ```hs
 :: NEList[a] ~> a
 ```
 Removes the current value from the list, where "the" value can be seen as the current "focus" of the list (i.e. the particular node reference that you're running the operation on). `NEL.of(9).extract(9);// = 9`
+
+
+#### `.at( Int )`
+```hs
+:: NEList[a] ~> a
+```
+Gets a value from a particular 0-based position in the list. Supports negative indexes as well. In the case of circular lists, any integer value, no matter how high or low, maps to some value's position in the array relative to the current reference.  
 
 #### `.toString()`
 ```hs
@@ -155,13 +162,13 @@ NECDLL[1,2,3].toString(): `'<-1,2,3->'`
 ```hs
 :: NEList[...a] -> [...a]
 ```
-Returns the list as a normal array.  With circular lists, this obviously means losing the "circularity" context: the resulting Array will simply start with the "current" node and end with the node previous to it.
+Returns the list as a normal array.  With circular lists, this obviously means losing the "circularity" context: the resulting Array will simply start with the "current" node reference and end with the node previous to it.
 
 #### `.toGenerator( Int )`
 ```hs
 :: NEList[a] -> *generator*
 ```
-Returns a generator iterating through the list "forwards" (i.e. .tail.tail.tail ...etc), infinitely repeating (even for regular `NEL`)
+Returns a generator iterating through the list "forwards" (i.e. .tail.tail.tail ...etc), infinitely repeating (even for regular, finite `NEL`)
 
 *Warning*: these are infinite lists we're talking about, so running something like [...generator] will crash your browser.  Either iterate over them in a safe, controlled fashion, or pass the optional `Int` "horizon" paramter into the function, which will cap the total number of iterations it can return.
 
