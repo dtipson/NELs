@@ -20,10 +20,14 @@ function RingNodeD(value, prev, tail) {
 RingNodeD.prototype = Object.create(NECDLL.prototype);
 
 NECDLL.of = x => RingNodeD(x);
-NECDLL.fromArray = ([head,...arr]=[]) => {
-  if(head===undefined){
-    throw new Error('Cannot create an empty non-empty list')
+NECDLL.fromArray = (array) => {
+  if(!Array.isArray(array) && typeof array !=="string"){
+    throw new Error(`Required first argument must be a non-empty Array or String. You passed: ${array}`);
   }
+  if(!array.length){
+    throw new Error('Cannot create an empty non-empty list');
+  }
+  const [head,...arr] = array;
   return arr.reduceRight((acc, x)=> acc.cons(x), RingNodeD(head)).prev;
 };
 

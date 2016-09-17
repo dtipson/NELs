@@ -7,7 +7,7 @@ function NECL(){}
 
 function Solo(value) {
   if (!(this instanceof Solo)) {
-    return new Solo(value, tail);
+    return new Solo(value);
   }
   Object.assign(this, {value, tail: this});
   return this;
@@ -187,10 +187,14 @@ NECL.prototype.toGenerator = function(horizon){
 }
 
 NECL.of = x => new Solo(x);
-NECL.fromArray = ([head,...arr]=[]) => {
-  if(head===undefined){
+NECL.fromArray = (array) => {
+  if(!Array.isArray(array) && typeof array !=="string"){
+    throw new Error(`Required first argument must be a non-empty Array or String. You passed: ${array}`);
+  }
+  if(!array.length){
     throw new Error('Cannot create an empty non-empty list');
   }
+  const [head,...arr] = array;
   return arr.reduce((acc, x)=> acc.concat(Solo(x)), Solo(head));
 };
 

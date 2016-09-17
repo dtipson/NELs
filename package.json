@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tap tests/*.js --cov",
+    "test": "tap tests/*.js ",
     "build": "browserify index.js -o bundle.js",
     "build:watch": "watch 'npm run build' ./src"
   },

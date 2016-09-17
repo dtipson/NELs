@@ -220,10 +220,14 @@ NEL.prototype.toGenerator = function(horizon){
 }
 
 //returns a maybe type because it can fail!
-NEL.fromArray = function([head, ...arr]=[]){
-  if(head===undefined){
+NEL.fromArray = (array) => {
+  if(!Array.isArray(array) && typeof array !=="string"){
+    throw new Error(`Required first argument must be a non-empty Array or String. You passed: ${array}`);
+  }
+  if(!array.length){
     throw new Error('Cannot create an empty non-empty list');
   }
+  const [head,...arr] = array;
   return arr.reduce((acc, x)=> acc.concat(One(x)), One(head));
 }
 
