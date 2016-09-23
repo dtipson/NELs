@@ -14,7 +14,7 @@ const S = b => f => x => b(x,f(x));
 const invoke = methodname => obj => (...args) => obj[methodname](...args);
 
 
-const map = curry((f, F) => typeof F.map==="function" ? F.map(x=>f(x)) : F.map(f) );//guard against Array.map, fallback to promises
+const map = curry((f, F) => typeof F.map==="function" ? F.map(x=>f(x)) : F.then(f) );//guard against Array.map, fallback to promises
 
 //Array/Promise polyfilling
 const chain = curry(
