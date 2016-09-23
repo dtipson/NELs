@@ -393,6 +393,14 @@ NECL.prototype.join = function(separator=','){
   return [...walker].map(x=>x.value).join(separator);
 }
 
+// NECL.prototype.equals = function(otherNECL){
+//   const walker = walkTail(this);
+//   const otherWalker = walkTail(otherNECL);
+//   return otherNEL instanceof NECL &&
+//     this.value===otherNECL.value && 
+//     ((this.tail && otherNEL.tail && this.tail.equals(otherNEL.tail)) || (!this.tail && !otherNEL.tail));
+// }
+
 
 
 Solo.prototype.toArray = function(el){
@@ -1288,7 +1296,7 @@ const S = b => f => x => b(x,f(x));
 const invoke = methodname => obj => (...args) => obj[methodname](...args);
 
 
-const map = curry((f, F) => typeof F.map==="function" ? F.map(x=>f(x)) : F.map(f) );//guard against Array.map, fallback to promises
+const map = curry((f, F) => typeof F.map==="function" ? F.map(x=>f(x)) : F.then(f) );//guard against Array.map, fallback to promises
 
 //Array/Promise polyfilling
 const chain = curry(
@@ -1308,11 +1316,11 @@ const liftA3 = curry((f, A1, A2, A3) => ap(ap(A1.map(f), A2), A3)    );
 //look ma, no map!
 //const liftA22 = curry((f, A1, A2) => A1.constructor.of(f).ap(A1).ap(A2));
 
-    const dimap = curry( (lmap, rmap, fn) => compose(rmap, fn, lmap) );
-    //mutates just the ouput of a function to be named later
-    const lmap = contramap = f => dimap(f, I);
-    //mutates the input of a function to be named later    
-    const rmap = dimap(x=>x);
+  const dimap = curry( (lmap, rmap, fn) => compose(rmap, fn, lmap) );
+  //mutates just the ouput of a function to be named later
+  const lmap = contramap = f => dimap(f, I);
+  //mutates the input of a function to be named later    
+  const rmap = dimap(x=>x);
     
 
 const head = xs => xs.head || xs[0];
@@ -1323,11 +1331,11 @@ const prop = namespace => obj => obj[namespace];
 
 
 //these two include polyfills for arrays
-const extend = fn => W => {
+const extend = curry((fn,W) => {
   return typeof W.extend ==="function" ?
     W.extend(fn) :
     W.map((_,i,arr)=>fn(arr.slice(i)))
-};
+});
 const extract = W => {
   return typeof W.extract ==="function" ? 
     W.extract() :

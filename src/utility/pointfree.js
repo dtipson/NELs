@@ -34,11 +34,11 @@ const liftA3 = curry((f, A1, A2, A3) => ap(ap(A1.map(f), A2), A3)    );
 //look ma, no map!
 //const liftA22 = curry((f, A1, A2) => A1.constructor.of(f).ap(A1).ap(A2));
 
-    const dimap = curry( (lmap, rmap, fn) => compose(rmap, fn, lmap) );
-    //mutates just the ouput of a function to be named later
-    const lmap = contramap = f => dimap(f, I);
-    //mutates the input of a function to be named later    
-    const rmap = dimap(x=>x);
+  const dimap = curry( (lmap, rmap, fn) => compose(rmap, fn, lmap) );
+  //mutates just the ouput of a function to be named later
+  const lmap = contramap = f => dimap(f, I);
+  //mutates the input of a function to be named later    
+  const rmap = dimap(x=>x);
     
 
 const head = xs => xs.head || xs[0];
@@ -49,11 +49,11 @@ const prop = namespace => obj => obj[namespace];
 
 
 //these two include polyfills for arrays
-const extend = fn => W => {
+const extend = curry((fn,W) => {
   return typeof W.extend ==="function" ?
     W.extend(fn) :
     W.map((_,i,arr)=>fn(arr.slice(i)))
-};
+});
 const extract = W => {
   return typeof W.extract ==="function" ? 
     W.extract() :
