@@ -171,6 +171,14 @@ NECL.prototype.join = function(separator=','){
   return [...walker].map(x=>x.value).join(separator);
 }
 
+// NECL.prototype.equals = function(otherNECL){
+//   const walker = walkTail(this);
+//   const otherWalker = walkTail(otherNECL);
+//   return otherNEL instanceof NECL &&
+//     this.value===otherNECL.value && 
+//     ((this.tail && otherNEL.tail && this.tail.equals(otherNEL.tail)) || (!this.tail && !otherNEL.tail));
+// }
+
 
 
 Solo.prototype.toArray = function(el){
