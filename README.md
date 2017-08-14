@@ -1,26 +1,26 @@
-#Non-Empty (Linked) Lists
+# Non-Empty (Linked) Lists
 
 These datatypes are similar to Arrays, but built as linked-lists, where most nodes contain both a value and a reference to another node. They also implement most of the relevant [Fantasy-Land](https://github.com/fantasyland/fantasy-land) interfaces for common algebraic structures. (In particular: Setoid, Semigroup, Functor, Apply, Applicative, Foldable, Traversable, Chain, Monad, Extend, & Comonad). Their usage as Comonads is probably the most interesting, as they provide different .extend models than would be available on native Arrays. The can also be used to generate infinite, repeating streams of values, or in the case of circular lists, traversed infinitely.
 
 While mostly academic and experimental atm (tests forthcoming), they are often more intelligible than regular Arrays for certain problems (celluar automata, slideshows, playlists, etc.).  There are currently 3 type flavors:
 
-##Non Empty List : NEL
+## Non Empty List : NEL
 
 The `NEL` type represents a list that _cannot_ be empty (which guarantees freedom from certain kinds of traversal errors). You can create such a list from literally any value (including an Array, another Non-Empty List) or Arrays of values (though to do interesting, predictable things with lists, it's usually important that all items be of the same type of thing). A `NEL` of just a single item will have a sub-type of `One` and any list of _more_ than one thing will have intermediary nodes sub-typed as `Many` ultimately terminating in a `One`.  Each node holds a value and then, if it's a `Many` node, also a reference to the next value at `.tail`
 
-##Non Empty Circular List : NECL
+## Non Empty Circular List : NECL
 
 The `NECL` type represents a list that _cannot_ be empty, just like a `NEL`. But is also _circular_: when traversing forwards through list, regardless of its length, you will always eventually wrap back around to the original element and then on again (though, of course, the concept of an "original" or "head" element now becomes a bit emphemeral at this point: the "head" of such a list is just wherever you happen to be referencing it from in the moment). A single `NECL` node will be sub-typed `Solo` and it's `.tail` will just be a reference to itself. A list with two or more items will be sub-typed `RingNode`. All elements are guaranteed to have a `.tail`
 
 Circular lists have the additional ability to generate a potentially infinite stream of endlessly repeated sequences. However, they can only be traversed in one direction. Which leads us to...
 
-##Non Empty Circular Double-Linked List : NECDLL
+## Non Empty Circular Double-Linked List : NECDLL
 
 The `NECDLL` type represents a list that cannot be empty and is also circular, like a `NECL`. But, unlike a `NECL`, each node _always_ links to a _previous_ node as well.  This means that it can be traversed in _either_ direction, either infinitely or finitely: whichever you please.
 
 All nodes will be sub-typed `RingNodeD.` For single node-lists, its `.tail` and `.before` references will both point to itself. A list with two or more items will be sub-typed `RingNodeD`. In the case of two nodes, each one's `.tail` and `.before` references will point to each other.  In the case of 3 or more, the references will form a continuous chain.
 
-###Methods/Interfaces
+### Methods/Interfaces
 
 Type-signature Key:
 - `a` : any value at all (b is also "any value," but assumed to be a different value from a)
@@ -60,7 +60,7 @@ Adds a single value or a single list onto the "tail" of the list (all nodes will
 *Note* This is intended to eventually work on NEList elements with multiple elements for all types, but that currently only works properly for `NEL` types.  For the circular types, it only works properly when the new list is a `Solo` or `SoloD`
 
 
-###Transformation (Immutable)
+### Transformation (Immutable)
 
 #### `.map( fn )` [*Functor*](https://github.com/fantasyland/fantasy-land#functor)
 ```hs
@@ -125,7 +125,7 @@ Transforms each value in a list by applying an Array of the surrounding values (
 
 *TBD* `Int` determines how many surrounding values are needed/passed. Each node's value will always be the middle value of the array passed to the transformation function for each node.
 
-###Folds
+### Folds
 
 #### `.reduce( fn, acc )`
 ```hs
@@ -144,7 +144,7 @@ Removes the current value from the list, where "the" value can be seen as the cu
 ```hs
 :: NEList[...a] -> Int -> a
 ```
-Gets a value from a particular 0-based position in the list. Supports negative indexes as well. In the case of circular lists, any integer value, no matter how high or low, maps to some value's position in the array relative to the current reference.  
+Gets a value from a particular 0-based position in the list. Supports negative indexes as well. In the case of circular lists, any integer value, no matter how high or low, maps to some value's position in the array relative to the current reference.
 
 #### `.toString()`
 ```hs
@@ -187,7 +187,7 @@ setInterval(_=>console.log(g.next().value), 1000);//logs an item every second: .
 Returns a generator iterating through the list "backwards" (i.e. .before.before.before ...etc). Also infinite.  Also a *Warning* on usage. Also supports the optional `Int` horizon.
 
  <p align="center">(NEL only)</p>
- 
+
 #### `[...NEList.of(9)], i.e. implicit [Symbol.iterator] behavior`
 ```hs
 :: NEList [a] -> *generator*

@@ -12,9 +12,10 @@ Object.assign(
   require('./src/utility/pointfree.js'),
   require('./src/other-types/monoids.js'),
   require('./src/other-types/Tree.js'),
+  require('./src/other-types/MD-Tree.js'),
   require('./src/other-types/utility.js')
 );
-},{"./src/NonEmptyCircularDoubleLinkedList.js":2,"./src/NonEmptyCircularList.js":3,"./src/NonEmptyList.js":4,"./src/other-types/Promise-helpers.js":7,"./src/other-types/Tree.js":8,"./src/other-types/lenses.js":9,"./src/other-types/monoids.js":10,"./src/other-types/utility.js":11,"./src/utility/pointfree.js":12}],2:[function(require,module,exports){
+},{"./src/NonEmptyCircularDoubleLinkedList.js":2,"./src/NonEmptyCircularList.js":3,"./src/NonEmptyList.js":4,"./src/other-types/MD-Tree.js":7,"./src/other-types/Promise-helpers.js":8,"./src/other-types/Tree.js":9,"./src/other-types/lenses.js":10,"./src/other-types/monoids.js":11,"./src/other-types/utility.js":12,"./src/utility/pointfree.js":13}],2:[function(require,module,exports){
 //doubly-linked circular lists
 const { walkTail, walkPrev, walkTailForever, walkPrevForever} = require('../src/utility/walkers.js');
 const { chain } = require('../src/utility/pointfree.js');
@@ -219,7 +220,7 @@ module.exports = {
   NECDLL
 };
 
-},{"../src/utility/pointfree.js":12,"../src/utility/walkers.js":13}],3:[function(require,module,exports){
+},{"../src/utility/pointfree.js":13,"../src/utility/walkers.js":14}],3:[function(require,module,exports){
 //single-linked circular lists
 const { walkTail, walkTailValues, walkTailForever } = require('../src/utility/walkers.js');
 const { chain } = require('../src/utility/pointfree.js');
@@ -441,7 +442,7 @@ module.exports = {
   NECL
 }
 
-},{"../src/utility/pointfree.js":12,"../src/utility/walkers.js":13}],4:[function(require,module,exports){
+},{"../src/utility/pointfree.js":13,"../src/utility/walkers.js":14}],4:[function(require,module,exports){
 const { iterateTail, walkTailValuesForever } = require('../src/utility/walkers.js');
 
 //create an (empty) prototype
@@ -695,7 +696,7 @@ Many.prototype.forEach = function(f){
 module.exports = {
   NEL
 }
-},{"../src/utility/walkers.js":13}],5:[function(require,module,exports){
+},{"../src/utility/walkers.js":14}],5:[function(require,module,exports){
 function Const(value) {
   if (!(this instanceof Const)) {
     return new Const(value);
@@ -780,7 +781,89 @@ Identity.prototype.duplicate = function(){
 };
 
 module.exports = Identity;
-},{"../../src/utility/pointfree.js":12}],7:[function(require,module,exports){
+},{"../../src/utility/pointfree.js":13}],7:[function(require,module,exports){
+const {Any, Max}  = require('../../src/other-types/monoids.js');
+const {foldMap}  = require('../../src/utility/pointfree.js');
+
+function MDTree(){}
+
+const Node = function(value, key){
+  if (!(this instanceof Node)) {
+    return new Node(value, key);
+  }
+  Object.assign(this, {value, key});
+}
+Node.prototype = Object.create(MDTree.prototype);
+
+Node.prototype.map = function(f){
+  return new Node(f(this.value), this.key);
+};
+Node.prototype.chain = function(f){
+  return new Node(f(this.value).value, this.key);
+};
+Node.prototype.extract = function(){
+  return this.value;
+};
+
+Node.prototype.toObject = function(){
+  return ({[this.key]:this.value});
+};
+
+
+
+const Edge = function(nodes, key){
+  if (!(this instanceof Edge)) {
+    return new Edge(nodes, key);
+  }
+  Object.assign(this, {nodes, key});
+}
+Edge.prototype = Object.create(MDTree.prototype);
+
+Edge.prototype.map = function(f){
+  return new Edge(this.nodes.map(x=>x.map(f)), this.key);
+};
+Edge.prototype.chain = function(f){
+  return new Edge(this.nodes.map(x=>x.chain(f)), this.key);
+};
+
+
+
+
+Edge.prototype.chain = function(f){
+  return new Edge(this.nodes.map(x=>x.chain(f)), this.key);
+};
+
+Edge.prototype.toObject = function(){
+  return this.key ?
+    { 
+      [this.key]: Object.assign({}, ...this.nodes.map(x=>x.toObject()) )
+    } :
+    Object.assign({}, ...this.nodes.map(x=>x.toObject()) );
+};
+
+MDTree.prototype.toJSON = function(){
+  return JSON.stringify(this.toObject());
+}
+
+MDTree.fromObject = (object, name) => {
+  const nodes = [];
+  for (var key in object) {
+    //need to figure out empty objects, single objects, etc.
+    if (object.hasOwnProperty(key)) {
+      if(typeof object[key] === "object"){
+        nodes.push( new Edge(MDTree.fromObject(object[key]).nodes, key) )
+      }else{
+        nodes.push(new Node(object[key], key))
+      }
+    }
+  }
+  return new Edge(nodes, name);
+};
+
+module.exports = {
+  Node, Edge, MDTree
+};
+},{"../../src/other-types/monoids.js":11,"../../src/utility/pointfree.js":13}],8:[function(require,module,exports){
 Promise.of = Promise.prototype.of = x => Promise.resolve(x);
 Promise.prototype.map = Promise.prototype.chain = Promise.prototype.bimap = Promise.prototype.then;
 //Promise.prototype.fold = Promise.prototype.then;//is it really? 
@@ -845,7 +928,7 @@ Promise.prototype.orElse = function _orElse(f) {
 
 
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 const {Any, Max}  = require('../../src/other-types/monoids.js');
 const {foldMap}  = require('../../src/utility/pointfree.js');
 
@@ -865,9 +948,6 @@ Leaf.prototype = Object.create(Tree.prototype);
 Leaf.prototype.toString = function(){
   return ` Leaf(${this.val}, ${this.ann})`;
 };
-Leaf.prototype.toJSON = function(){
-  return this.ann;
-};
 Leaf.prototype.map = function(f){
   return new Leaf(this.val, f(this.ann));
 };
@@ -883,18 +963,6 @@ Leaf.prototype.reduce = function(f, acc){
 Leaf.prototype.concat = function(l){
   return this.ann.concat(l.ann);
 };
-// Leaf : val -> ann -> Tree val ann
-// function Leaf(val, ann) {
-//   return {
-//     ann: ann,
-//     val: val,
-//     toString: () => ` Leaf(${val}, ${ann})`,
-//     map: f => Leaf(val, f(ann)),
-//     extend: f => Leaf(val, f(Leaf(val, ann))),
-//     extract: _ => val,
-//     reduce: (f, acc) => f(acc, ann),
-//   };
-// }
 
 const Branch = function(left, right, ann){
   if (!(this instanceof Branch)) {
@@ -907,12 +975,6 @@ Branch.prototype = Object.create(Tree.prototype);
 Branch.prototype.toString = function(){
   return ` Branch(${this.ann}\n  ${this.left},\n  ${this.right}\n )`;
 };
-
-Branch.prototype.toJSON = function(){
-  return {left:this.left.toJSON(),right:this.right.toJSON(),ann: this.ann};
-};
-
-
 Branch.prototype.map = function(f){
   return new Branch(this.left.map(f), this.right.map(f), f(this.ann));
 };
@@ -928,6 +990,25 @@ Branch.prototype.reduce = function(f, acc){
 Branch.prototype.concat = function(b){
   return this.ann.concat(b.ann);
 };
+
+Leaf.prototype._traverse = function(){
+  return this.val;
+};
+Leaf.prototype[Symbol.iterator] = function(){
+  return this._traverse();
+};
+
+
+Branch.prototype._traverse = function *(){
+  if(this.left) yield * this.left._traverse();
+  yield this.val;
+  if(this.right) yield * this.right._traverse();
+};
+Branch.prototype[Symbol.iterator] = function(){
+  return this._traverse();
+}
+
+
 
 Branch.prototype.allAnnotations = function(b){
   return this.reduce((acc, x) => acc.concat(x), []);
@@ -970,7 +1051,7 @@ const longestAnnotation = tree => tree.reduce((acc, x)=> acc.length>x.length? ac
 module.exports = {
   Leaf, Branch, changed, largest, longestAnnotation
 };
-},{"../../src/other-types/monoids.js":10,"../../src/utility/pointfree.js":12}],9:[function(require,module,exports){
+},{"../../src/other-types/monoids.js":11,"../../src/utility/pointfree.js":13}],10:[function(require,module,exports){
 const { compose, traverse, curry, map, K, I, W}  = require('../../src/utility/pointfree.js');
 const Identity  = require('../../src/other-types/Identity.js');
 const Const  = require('../../src/other-types/Const.js');
@@ -1049,7 +1130,7 @@ module.exports ={
 
 
 
-},{"../../src/other-types/Const.js":5,"../../src/other-types/Identity.js":6,"../../src/utility/pointfree.js":12}],10:[function(require,module,exports){
+},{"../../src/other-types/Const.js":5,"../../src/other-types/Identity.js":6,"../../src/utility/pointfree.js":13}],11:[function(require,module,exports){
 //concatenation is composition with one type (closed composition)
 
 String.prototype.empty = x => '';//makes string a well behaved monoid for left to right cases
@@ -1190,7 +1271,7 @@ module.exports = {
   getResult,
   Max
 }
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (global){
 const {curry}  = require('../../src/utility/pointfree.js');
 
@@ -1279,7 +1360,7 @@ module.exports = {
   booleanEquals
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../../src/utility/pointfree.js":12}],12:[function(require,module,exports){
+},{"../../src/utility/pointfree.js":13}],13:[function(require,module,exports){
 const compose  = (fn, ...rest) =>
   rest.length === 0 ?
     (fn||(x=>x)) :
@@ -1442,7 +1523,7 @@ module.exports = {
   sum,
   reduceBySum
 };
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 //returns the nodes, one trip around from ref
 const walkTail = function*(ref){
   const start = ref;

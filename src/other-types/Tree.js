@@ -17,9 +17,6 @@ Leaf.prototype = Object.create(Tree.prototype);
 Leaf.prototype.toString = function(){
   return ` Leaf(${this.val}, ${this.ann})`;
 };
-Leaf.prototype.toJSON = function(){
-  return this.ann;
-};
 Leaf.prototype.map = function(f){
   return new Leaf(this.val, f(this.ann));
 };
@@ -35,18 +32,6 @@ Leaf.prototype.reduce = function(f, acc){
 Leaf.prototype.concat = function(l){
   return this.ann.concat(l.ann);
 };
-// Leaf : val -> ann -> Tree val ann
-// function Leaf(val, ann) {
-//   return {
-//     ann: ann,
-//     val: val,
-//     toString: () => ` Leaf(${val}, ${ann})`,
-//     map: f => Leaf(val, f(ann)),
-//     extend: f => Leaf(val, f(Leaf(val, ann))),
-//     extract: _ => val,
-//     reduce: (f, acc) => f(acc, ann),
-//   };
-// }
 
 const Branch = function(left, right, ann){
   if (!(this instanceof Branch)) {
@@ -59,12 +44,6 @@ Branch.prototype = Object.create(Tree.prototype);
 Branch.prototype.toString = function(){
   return ` Branch(${this.ann}\n  ${this.left},\n  ${this.right}\n )`;
 };
-
-Branch.prototype.toJSON = function(){
-  return {left:this.left.toJSON(),right:this.right.toJSON(),ann: this.ann};
-};
-
-
 Branch.prototype.map = function(f){
   return new Branch(this.left.map(f), this.right.map(f), f(this.ann));
 };
@@ -80,6 +59,25 @@ Branch.prototype.reduce = function(f, acc){
 Branch.prototype.concat = function(b){
   return this.ann.concat(b.ann);
 };
+
+Leaf.prototype._traverse = function(){
+  return this.val;
+};
+Leaf.prototype[Symbol.iterator] = function(){
+  return this._traverse();
+};
+
+
+Branch.prototype._traverse = function *(){
+  if(this.left) yield * this.left._traverse();
+  yield this.val;
+  if(this.right) yield * this.right._traverse();
+};
+Branch.prototype[Symbol.iterator] = function(){
+  return this._traverse();
+}
+
+
 
 Branch.prototype.allAnnotations = function(b){
   return this.reduce((acc, x) => acc.concat(x), []);

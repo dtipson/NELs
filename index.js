@@ -11,5 +11,6 @@ Object.assign(
   require('./src/utility/pointfree.js'),
   require('./src/other-types/monoids.js'),
   require('./src/other-types/Tree.js'),
+  require('./src/other-types/MD-Tree.js'),
   require('./src/other-types/utility.js')
 );
